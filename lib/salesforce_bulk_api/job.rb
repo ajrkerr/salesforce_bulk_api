@@ -9,9 +9,10 @@ module SalesforceBulkApi
       @job_id         = args[:job_id]
       @operation      = args[:operation]
       @sobject        = args[:sobject]
-      @external_field = args[:external_field]
+      @external_key   = args[:external_key]
       @records        = args[:records]
       @connection     = args[:connection]
+      @serial         = args.fetch(:serial, false)
       @batch_ids      = []
       @XML_HEADER     = '<?xml version="1.0" encoding="utf-8" ?>'
     end
@@ -26,9 +27,10 @@ module SalesforceBulkApi
       xml = "#{@XML_HEADER}<jobInfo xmlns=\"http://www.force.com/2009/06/asyncapi/dataload\">"
       xml += "<operation>#{@operation}</operation>"
       xml += "<object>#{@sobject}</object>"
-      if !@external_field.nil? # This only happens on upsert
-        xml += "<externalIdFieldName>#{@external_field}</externalIdFieldName>"
-      end
+
+      xml += "<externalIdFieldName>#{@external_key}</externalIdFieldName>" if @external_key && @operation == 'upsert'
+      xml += "<concurrencyMode>Serial</concurrencyMode>" if @serial
+
       xml += "<contentType>XML</contentType>"
       xml += "</jobInfo>"
 
