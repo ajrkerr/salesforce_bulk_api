@@ -101,39 +101,46 @@ module SalesforceBulkApi
 
     def build_sobject(data)
       xml = '<sObject>'
-      data.keys.each do |k|
-        if k.is_a?(Hash)
-          xml += build_sobject(k)
-        elsif data[k] != :type
-          xml += "<#{k}>#{data[k]}</#{k}>"
+      data.each do |key, value|
+        if key.is_a?(Hash)
+          xml += build_sobject(key)
+        elsif value != :type
+          xml += "<#{key}>#{encode_xml_value(value)}</#{key}>"
         end
       end
       xml += '</sObject>'
+      xml
     end
 
-    def create_sobject(keys, r)
+    def create_sobject(keys, record)
       sobject_xml = '<sObject>'
-      keys.each do |k|
-        if r[k].is_a?(Hash)
-          sobject_xml += "<#{k}>"
-          sobject_xml += build_sobject(r[k])
-          sobject_xml += "</#{k}>"
-        elsif !r[k].to_s.empty?
-          sobject_xml += "<#{k}>"
-          if r[k].respond_to?(:encode)
-            sobject_xml += r[k].encode(:xml => :text)
-          elsif r[k].respond_to?(:iso8601) # timestamps
-            sobject_xml += r[k].iso8601.to_s
-          else
-            sobject_xml += r[k].to_s
-          end
-          sobject_xml += "</#{k}>"
-        elsif @send_nulls && !@no_null_list.include?(k)
-          sobject_xml += "<#{k} xsi:nil=\"true\"/>"
+      keys.each do |key|
+        value = record[key]
+
+        if value.is_a?(Hash)
+          sobject_xml += "<#{key}>"
+          sobject_xml += build_sobject(value)
+          sobject_xml += "</#{key}>"
+        elsif !value.to_s.empty?
+          sobject_xml += "<#{key}>"
+          sobject_xml += encode_xml_value(value)
+          sobject_xml += "</#{key}>"
+        elsif @send_nulls && !@no_null_list.include?(key)
+          sobject_xml += "<#{key} xsi:nil=\"true\"/>"
         end
       end
       sobject_xml += '</sObject>'
       sobject_xml
+    end
+
+    def encode_xml_value(value)
+      if value.respond_to?(:encode)
+        value.encode(xml: :text)
+      elsif value.respond_to?(:iso8601) # timestamps
+        value.iso8601.to_s
+      else
+        value.to_s.encode(xml: :text)
+      end
     end
 
     def check_job_status
